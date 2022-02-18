@@ -1,0 +1,78 @@
+---
+
+- name: Ensure data directories exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: true
+    owner: podman
+    group: podman
+  with_items:
+    - "{{ wordpress_data_dir }}"
+    - "{{ wordpress_data_dir }}/data"
+    - "{{ wordpress_data_dir }}/db"
+  become: true
+  become_user: root
+
+- name: Template over nginx.conf
+  ansible.builtin.template:
+    src: wordpress-nginx.conf
+    dest: "{{ wordpress_data_dir }}/nginx.conf"
+    mode: '0755'
+  notify: restart nginx
+
+- name: Create wordpress-pod pod
+  containers.podman.podman_pod:
+    name: wordpress-pod
+    state: started
+    publish: "8080:80"
+
+- name: Redirect port 80 to 8080
+  ansible.posix.firewalld:
+    rich_rule: rule family=ipv4 forward-port port=80 protocol=tcp to-port=8080
+    zone: public
+    permanent: true
+    immediate: true
+    state: enabled
+  become: true
+  become_user: root
+
+- name: Create the database container
+  containers.podman.podman_container:
+    name: wordpress-db
+    image: "mysql:5.7"
+    state: started
+    restart_policy: "on-failure"
+    pod: wordpress-pod
+    volume:
+      - "{{ wordpress_data_dir }}/db:/var/lib/mysql:Z"
+    env:
+      MYSQL_DATABASE: "{{ wordpress_db_name }}"
+      MYSQL_USER: "{{ wordpress_db_user }}"
+      MYSQL_PASSWORD: "{{ wordpress_db_pass }}"
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+
+- name: Create the NGINX container
+  containers.podman.podman_container:
+    name: wordpress-web
+    image: "nginx"
+    state: started
+    restart_policy: "on-failure"
+    pod: wordpress-pod
+    volume:
+      - "{{ wordpress_data_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+
+- name: Create the WordPress container
+  containers.podman.podman_container:
+    name: wordpress
+    image: "wordpress:5-fpm"
+    state: started
+    restart_policy: "on-failure"
+    pod: wordpress-pod
+    volume:
+      - "{{ wordpress_data_dir }}/data:/var/www/html:Z"
+    env:
+      WORDPRESS_DB_HOST: 127.0.0.1
+      WORDPRESS_DB_NAME: "{{ wordpress_db_name }}"
+      WORDPRESS_DB_USER: "{{ wordpress_db_user }}"
+      WORDPRESS_DB_PASSWORD: "{{ wordpress_db_pass }}"

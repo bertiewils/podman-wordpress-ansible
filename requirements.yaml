@@ -1,0 +1,6 @@
+---
+# Ansible requirements
+
+collections:
+  - name: ansible.posix
+  - name: containers.podman

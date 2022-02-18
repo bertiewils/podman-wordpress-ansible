@@ -1,0 +1,30 @@
+---
+
+- name: Deploy WordPress
+  hosts: webserver
+  remote_user: "{{ user | default(ansible_username) }}"
+
+  tasks:
+    - name: Deploy Podman
+      import_role:
+        name: podman
+      become: true
+      tags: podman
+
+    - name: Deploy WordPress
+      import_role:
+        name: wordpress
+      become: true
+      become_user: "{{ podman_user_name }}"
+      tags: wordpress
+
+    - name: Test webpage is accessible
+      shell: "curl -sL {{ nginx_server_name }}/wp-admin/install.php"
+      register: webpage
+      changed_when: false
+      delegate_to: localhost
+
+    - name: Check WordPress is working
+      assert:
+        that:
+          - "'WordPress' in webpage.stdout"

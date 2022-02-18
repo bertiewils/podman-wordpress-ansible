@@ -1,0 +1,19 @@
+---
+
+# General
+ansible_username: ansible
+
+
+# Podman
+podman_user_name: podman
+podman_user_pass: password123
+podman_user_uid: 1001
+
+# NGINX
+nginx_server_name: localhost  # Change to desired URL
+
+# WordPress
+wordpress_data_dir: /opt/wordpress
+wordpress_db_name: wordpress
+wordpress_db_user: wordpress
+wordpress_db_pass: supersecurepassword

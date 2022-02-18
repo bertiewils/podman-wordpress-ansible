@@ -1,0 +1,19 @@
+---
+
+- name: Install Podman
+  package:
+    name: "podman"
+    state: present
+
+- name: Create the {{ podman_user }} user
+  ansible.builtin.user:
+    name: "{{ podman_user_name }}"
+    state: present
+    password: "{{ podman_user_pass | password_hash('sha512', 65534 | random(seed=inventory_hostname) | string) }}"
+    append: true
+    uid: "{{ podman_user_uid }}"
+    groups: wheel
+    shell: /bin/bash
+    system: false
+    create_home: true
+    skeleton: "/etc/skel"

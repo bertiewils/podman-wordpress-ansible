@@ -1,0 +1,6 @@
+---
+
+- name: restart nginx
+  containers.podman.podman_container:
+    name: wordpress
+    force_restart: true

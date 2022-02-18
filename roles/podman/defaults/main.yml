@@ -1,0 +1,4 @@
+---
+
+podman_user: podman
+podman_user_pass: changeme
